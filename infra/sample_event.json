@@ -1,0 +1,22 @@
+{
+  "_comment": "Sample EventBridge event for local SAM CLI testing. Replace repo/PR values with real ones from your CodeCommit account.",
+  "version": "0",
+  "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "source": "aws.codecommit",
+  "account": "381492276712",
+  "time": "2024-01-15T10:00:00Z",
+  "region": "ap-south-1",
+  "detail-type": "CodeCommit Pull Request State Change",
+  "detail": {
+    "event": "pullRequestCreated",
+    "pullRequestId": "42",
+    "pullRequestStatus": "OPEN",
+    "repositoryNames": ["my-repo"],
+    "sourceReference": "refs/heads/feature/my-feature",
+    "destinationReference": "refs/heads/main",
+    "author": "arn:aws:iam::381492276712:user/Fylz-DevOps",
+    "callerUserArn": "arn:aws:iam::381492276712:user/Fylz-DevOps",
+    "title": "Add new feature",
+    "description": "This PR adds a new feature"
+  }
+}

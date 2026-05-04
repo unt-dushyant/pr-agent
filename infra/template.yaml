@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  PR-Agent CodeCommit Lambda — handles linting (CodeBuild) and LLM-powered
+  PR review in a single function. Triggered by EventBridge on PR create/update,
+  branch push, and CodeBuild state changes.
+
+Parameters:
+  BackendCodeBuildProject:
+    Type: String
+    Default: ""
+    Description: "CodeBuild project name used for backend repo linting (cc-backend)"
+  FrontendCodeBuildProject:
+    Type: String
+    Default: ""
+    Description: "CodeBuild project name used for frontend repo linting (cc-frontend)"
+  AllowedRepos:
+    Type: String
+    Default: ""
+    Description: "Comma-separated list of CodeCommit repo names to process (empty = all repos)"
+  TargetBaseBranches:
+    Type: String
+    Default: "main"
+    Description: "Comma-separated base branch names that PRs must target to trigger linting"
+
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 512
+    Environment:
+      Variables:
+        # Git provider — always codecommit for this handler
+        CONFIG__GIT_PROVIDER: codecommit
+        CONFIG__LOG_LEVEL: INFO
+        # AWS region used to build CodeCommit console URLs and for boto3
+        AWS_DEFAULT_REGION: !Ref AWS::Region
+        # Linting — CodeBuild project names
+        BACKEND_CODEBUILD_PROJECT: !Ref BackendCodeBuildProject
+        FRONTEND_CODEBUILD_PROJECT: !Ref FrontendCodeBuildProject
+        # Linting — repo and branch filters
+        ALLOWED_REPOS: !Ref AllowedRepos
+        TARGET_BASE_BRANCHES: !Ref TargetBaseBranches
+
+Resources:
+  CodeCommitPRAgent:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DockerTag: codecommit_lambda
+      DockerContext: ..          # repo root — where Dockerfile.lambda lives
+      Dockerfile: docker/Dockerfile.lambda
+      DockerBuildTarget: codecommit_lambda
+    Properties:
+      PackageType: Image
+      # IAM role — when deploying to AWS, replace with your Lambda execution role ARN.
+      # For `sam local invoke` the function runs under your local AWS CLI identity.
+      # Role: arn:aws:iam::ACCOUNT_ID:role/pr-agent-lambda-role
+
+      # LLM keys and other secrets are NOT placed here.
+      # Pass them via infra/local_env.json when running locally:
+      #   sam local invoke CodeCommitPRAgent -e infra/sample_event.json \
+      #       --env-vars infra/local_env.json
+      #
+      # In production, set them as Lambda environment variables in the console
+      # or via `aws lambda update-function-configuration`.
+
+      Events:
+        # Handles: PR create/update (starts linting build)
+        #          Repository push  (starts linting build if open PR exists)
+        #          CodeBuild finish (approves/revokes PR; runs PR agent on SUCCEEDED)
+        AllEvents:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.codecommit
+                - aws.codebuild
+              detail-type:
+                - CodeCommit Pull Request State Change
+                - CodeCommit Repository State Change
+                - CodeBuild Build State Change

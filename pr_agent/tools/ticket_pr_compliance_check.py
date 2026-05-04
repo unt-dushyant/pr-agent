@@ -3,7 +3,6 @@ import traceback
 
 from pr_agent.config_loader import get_settings
 from pr_agent.git_providers import GithubProvider
-from pr_agent.git_providers import AzureDevopsProvider
 from pr_agent.log import get_logger
 
 # Compile the regex pattern once, outside the function
@@ -12,6 +11,14 @@ GITHUB_TICKET_PATTERN = re.compile(
 )
 # Option A: issue number at start of branch or after /, followed by - or end (e.g. feature/1-test-issue, 123-fix)
 BRANCH_ISSUE_PATTERN = re.compile(r"(?:^|/)(\d{1,6})(?=-|$)")
+
+
+def _is_azure_devops_provider(git_provider) -> bool:
+    # Check by class name to avoid importing the azure-devops SDK.
+    # The SDK calls os.makedirs during import, which fails in read-only
+    # environments like AWS Lambda when Azure is not the active provider.
+    return type(git_provider).__name__ == 'AzureDevopsProvider'
+
 
 def find_jira_tickets(text):
     # Regular expression patterns for JIRA tickets
@@ -190,7 +197,7 @@ async def extract_tickets(git_provider):
 
                 return tickets_content
 
-        elif isinstance(git_provider, AzureDevopsProvider):
+        elif _is_azure_devops_provider(git_provider):
             tickets_info = git_provider.get_linked_work_items()
             tickets_content = []
             for ticket in tickets_info:
@@ -215,6 +222,17 @@ async def extract_tickets(git_provider):
                         artifact={"traceback": traceback.format_exc()},
                     )
             return tickets_content
+
+        else:
+            # Provider-agnostic ticket sources (e.g., Zoho Sprints)
+            try:
+                from pr_agent.tools.zoho_sprints_provider import fetch_zoho_tickets
+                zoho_tickets = await fetch_zoho_tickets(git_provider)
+                if zoho_tickets:
+                    return zoho_tickets
+            except Exception as e:
+                get_logger().warning(f"Zoho Sprints ticket fetch failed: {e}",
+                                     artifact={"traceback": traceback.format_exc()})
 
     except Exception as e:
         get_logger().error(f"Error extracting tickets error= {e}",

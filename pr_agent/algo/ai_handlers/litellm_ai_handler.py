@@ -34,6 +34,9 @@ class LiteLLMAIHandler(BaseAiHandler):
         self.api_base = None
         self.repetition_penalty = None
 
+        # Disable litellm's built-in telemetry — it sends model/usage metadata to BerriAI servers.
+        litellm.telemetry = False
+
         if get_settings().get("LITELLM.DISABLE_AIOHTTP", False):
             litellm.disable_aiohttp_transport = True
         if get_settings().get("OPENAI.KEY", None):
@@ -401,11 +404,12 @@ class LiteLLMAIHandler(BaseAiHandler):
                 kwargs["model_id"] = model_id
                 get_logger().info(f"Using Bedrock custom inference profile: {model_id}")
 
-            get_logger().debug("Prompts", artifact={"system": system, "user": user})
+            # Log prompt sizes only — never log actual prompt content (contains PR diffs/code).
+            get_logger().debug("Prompts", artifact={"system_chars": len(system), "user_chars": len(user)})
 
             if get_settings().config.verbosity_level >= 2:
-                get_logger().info(f"\nSystem prompt:\n{system}")
-                get_logger().info(f"\nUser prompt:\n{user}")
+                get_logger().debug(f"\nSystem prompt:\n{system}")
+                get_logger().debug(f"\nUser prompt:\n{user}")
 
             # Inject api_key to the call. This key is populated during init by providers
             # like Groq, XAI, Azure AD, and OpenRouter. Skip if None or placeholder.
@@ -425,11 +429,31 @@ class LiteLLMAIHandler(BaseAiHandler):
             get_logger().warning(f"Unknown error during LLM inference: {e}")
             raise openai.APIError from e
 
-        get_logger().debug(f"\nAI response:\n{resp}")
-
-        # log the full response for debugging
+        # log the full response for debugging (never log resp text — contains LLM output referencing code)
         response_log = self.prepare_logs(response_obj, system, user, resp, finish_reason)
-        get_logger().debug("Full_response", artifact=response_log)
+        get_logger().debug("Full_response", artifact={k: v for k, v in response_log.items()
+                                                      if k not in ("system", "user", "output")})
+
+        # log token usage clearly at INFO level
+        try:
+            usage = response_log.get("usage")
+            if usage:
+                prompt_tokens = getattr(usage, "prompt_tokens", None) or (usage.get("prompt_tokens") if isinstance(usage, dict) else None)
+                completion_tokens = getattr(usage, "completion_tokens", None) or (usage.get("completion_tokens") if isinstance(usage, dict) else None)
+                total_tokens = getattr(usage, "total_tokens", None) or (usage.get("total_tokens") if isinstance(usage, dict) else None)
+                get_logger().info(
+                    "Token usage",
+                    artifact={
+                        "model": kwargs.get("model", "unknown"),
+                        "input_tokens": prompt_tokens,
+                        "output_tokens": completion_tokens,
+                        "total_tokens": total_tokens,
+                    },
+                )
+            else:
+                get_logger().info("Token usage: not available (streaming or provider did not return usage)")
+        except Exception:
+            pass
 
         # for CLI debugging
         if get_settings().config.verbosity_level >= 2:

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(gh repo:*)",
+      "Bash(git --version)",
+      "Bash(curl --version)",
+      "Bash(git remote:*)",
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Bash(grep -r \"environ\\\\|getenv\\\\|os\\\\\\\\.env\" /c/Users/draiy/Desktop/pr-agent/pr_agent/config_loader.py /c/Users/draiy/Desktop/pr-agent/pr_agent/git_providers/github_provider.py)"
+    ]
+  }
+}

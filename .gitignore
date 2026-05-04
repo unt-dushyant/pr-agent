@@ -13,3 +13,6 @@ build/
 docs/.cache/
 .qodo
 poetry.lock
+infra/local_env.json
+infra/sample_event_run.json
+.claude/settings.local.json

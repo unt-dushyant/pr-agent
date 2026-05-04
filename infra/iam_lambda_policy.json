@@ -1,0 +1,68 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CodeCommitReadAndComment",
+      "Effect": "Allow",
+      "Action": [
+        "codecommit:GetPullRequest",
+        "codecommit:GetDifferences",
+        "codecommit:GetFile",
+        "codecommit:GetRepository",
+        "codecommit:PostCommentForPullRequest",
+        "codecommit:UpdatePullRequestTitle",
+        "codecommit:UpdatePullRequestDescription"
+      ],
+      "Resource": "arn:aws:codecommit:<REGION>:<ACCOUNT_ID>:<REPO_NAME>"
+    },
+    {
+      "Sid": "CodeCommitLintingOps",
+      "Effect": "Allow",
+      "Action": [
+        "codecommit:ListPullRequests",
+        "codecommit:GetPullRequest",
+        "codecommit:GetCommentsForPullRequest",
+        "codecommit:PostCommentForPullRequest",
+        "codecommit:UpdatePullRequestApprovalState"
+      ],
+      "Resource": "arn:aws:codecommit:<REGION>:<ACCOUNT_ID>:*"
+    },
+    {
+      "Sid": "CodeBuildStartBuild",
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:StartBuild",
+        "codebuild:BatchGetBuilds"
+      ],
+      "Resource": "arn:aws:codebuild:<REGION>:<ACCOUNT_ID>:project/*"
+    },
+    {
+      "Sid": "SecretsManagerReadConfig",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:<SECRET_NAME>-*"
+    },
+    {
+      "Sid": "CloudWatchLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:<REGION>:<ACCOUNT_ID>:log-group:/aws/lambda/*"
+    },
+    {
+      "Sid": "ECRImagePull",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "ecr:GetAuthorizationToken"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ from pr_agent.algo.token_handler import TokenHandler
 from pr_agent.algo.utils import (ModelType, load_yaml, replace_code_tags,
                                  show_relevant_configurations, get_max_tokens, clip_tokens, get_model)
 from pr_agent.config_loader import get_settings
-from pr_agent.git_providers import (AzureDevopsProvider, GithubProvider,
+from pr_agent.git_providers import (GithubProvider,
                                     GitLabProvider, get_git_provider,
                                     get_git_provider_with_context)
 from pr_agent.git_providers.git_provider import get_main_pr_language, GitProvider

@@ -1,0 +1,9 @@
+{
+  "_comment": "EventBridge rule pattern — matches CodeCommit PR created and source-branch-updated events. Attach this as the event pattern when creating the rule, then set the Lambda as the target.",
+  "source": ["aws.codecommit"],
+  "detail-type": ["CodeCommit Pull Request State Change"],
+  "detail": {
+    "event": ["pullRequestCreated", "pullRequestSourceBranchUpdated"],
+    "repositoryNames": ["<REPO_NAME>"]
+  }
+}

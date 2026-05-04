@@ -17,11 +17,11 @@ use_extra_bad_extensions=false
 # Log
 log_level="DEBUG"
 # Configurations
-use_wiki_settings_file=true
-use_repo_settings_file=true
+use_wiki_settings_file=false   # disabled: prevents reviewed repos from injecting settings via wiki
+use_repo_settings_file=false   # disabled: prevents reviewed repos from injecting settings via .pr_agent.toml
 use_global_settings_file=true
 disable_auto_feedback = false
-ai_timeout=120 # 2 minutes
+ai_timeout=300 # 5 minutes
 skip_keys = []
 custom_reasoning_model = false # when true, disables system messages and temperature controls for models that don't support chat-style inputs
 response_language="en-US" # Language locales code for PR responses in ISO 3166 and ISO 639 format (e.g., "en-US", "it-IT", "zh-CN", ...)
@@ -291,6 +291,15 @@ pr_commands = [
 ]
 avoid_full_files = false
 
+[codecommit]
+# Commands run automatically when a PR is created or updated via the EventBridge Lambda handler.
+# Override in your Lambda environment using CODECOMMIT__PR_COMMANDS or in .pr_agent.toml.
+pr_commands = [
+    "/review",
+]
+# Set to true to also run /improve on every PR event (can be verbose for large diffs)
+auto_improve = false
+
 [local]
 # LocalGitProvider settings - uncomment to use paths other than default
 # description_path= "path/to/description.md"
@@ -374,3 +383,19 @@ pr_commands = [
     "/review",
     "/improve",
 ]
+
+[zoho_sprints]
+# Zoho Sprints ticket integration — works with any git provider.
+# When enabled, extracts the first digit sequence from the PR title and fetches the
+# item description from Zoho Sprints to include as context in the PR review.
+# Supported PR title formats (all extract "2131"):
+#   [I2131] Fix login bug  |  I2131: Fix login bug  |  ZS-2131 Fix  |  #2131 Fix
+enabled = true
+domain = "zoho.in"   # "zoho.com", "zoho.eu", "zoho.in", etc.
+team_id = "60058870264"
+# Map each repository name to its Zoho Sprints project ID.
+# sprint_id is optional (legacy — no longer required by the API endpoint used).
+# Example: repo_project_map = {my-repo = {project_id = "49899000000053149"}}
+# Legacy:  repo_project_map = {my-repo = {project_id = "abc123", sprint_id = "def456"}}
+repo_project_map = {"*FYLZ*"= {project_id = "49899000000053149"},"*cc*"={project_id = "49899000000234016"},"*1987*"={project_id = "49899000000020008"}}
+

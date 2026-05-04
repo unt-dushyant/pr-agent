@@ -62,7 +62,7 @@ A `PR Code Verified` label indicates the PR code meets ticket requirements, but 
 
     ```toml
     [pr_reviewer]
-    require_ticket_analysis_review=false
+    require_ticket_analysis_review=true
     ```
 
 -

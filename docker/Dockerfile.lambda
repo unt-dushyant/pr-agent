@@ -4,9 +4,18 @@ RUN dnf update -y && \
     dnf install -y gcc python3-devel git && \
     dnf clean all
 
-ADD pyproject.toml requirements.txt ./
-RUN pip install --no-cache-dir . && rm pyproject.toml
+# --- Layer 1: dependencies (cached as long as requirements.txt doesn't change) ---
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# --- Layer 2: package metadata only (rarely changes) ---
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir --no-deps . && rm pyproject.toml
+
+# mangum is a small package — kept separate so it's also cached independently
 RUN pip install --no-cache-dir mangum==0.17.0
+
+# --- Layer 3: source code (changes frequently, but doesn't re-run pip) ---
 COPY pr_agent/ ${LAMBDA_TASK_ROOT}/pr_agent/
 
 FROM base AS github_lambda
@@ -14,5 +23,15 @@ CMD ["pr_agent.servers.github_lambda_webhook.lambda_handler"]
 
 FROM base AS gitlab_lambda
 CMD ["pr_agent.servers.gitlab_lambda_webhook.lambda_handler"]
+
+# ---------------------------------------------------------------------------
+# CodeCommit Lambda — triggered by EventBridge (CodeCommit PR state change)
+# Build:  docker build --target codecommit_lambda -t pr-agent-codecommit .
+# Push:   docker tag pr-agent-codecommit <account>.dkr.ecr.<region>.amazonaws.com/pr-agent-codecommit:latest
+#         docker push <account>.dkr.ecr.<region>.amazonaws.com/pr-agent-codecommit:latest
+# ---------------------------------------------------------------------------
+FROM base AS codecommit_lambda
+# No additional packages needed — boto3 is already in the Lambda base image
+CMD ["pr_agent.servers.lambda_function.lambda_handler"]
 
 FROM github_lambda
